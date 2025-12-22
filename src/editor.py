@@ -1,12 +1,9 @@
 """
 Video Editor Module
-Creates DYNAMIC 9:16 Instagram Reels with Ken Burns Effect, animations, and text overlays
+Creates STATIC 9:16 Instagram Reels with completely static images (NO animations)
 
-Ken Burns Effect:
-- Slow, smooth zoom and pan movements that bring static images to life
-- Creates cinematic, professional-looking videos from still images
-- Named after documentary filmmaker Ken Burns who popularized this technique
-- 8 different animation patterns to keep videos engaging and varied
+Ken Burns effects have been REMOVED - images remain completely static throughout playback.
+This provides a clean, simple video presentation without any motion effects.
 """
 
 import os
@@ -32,7 +29,8 @@ if sys.platform == 'win32':
 
 def create_zoom_effect(clip, zoom_ratio=0.2, zoom_in=True):
     """
-    Create a smooth zoom effect on a clip (in or out).
+    Create a SUPER SMOOTH zoom effect on a clip (in or out).
+    FIXED: Uses better easing function to eliminate fluctuations
 
     Args:
         clip: MoviePy clip
@@ -40,13 +38,21 @@ def create_zoom_effect(clip, zoom_ratio=0.2, zoom_in=True):
         zoom_in: True for zoom in, False for zoom out
 
     Returns:
-        Clip with zoom animation
+        Clip with smooth zoom animation
     """
+    def smooth_ease_in_out(t):
+        """
+        Smoother easing function using cosine interpolation
+        This eliminates jerkiness/fluctuations
+        """
+        return (1 - np.cos(t * np.pi)) / 2
+
     def zoom(t):
-        # Progressive zoom with easing
+        # Normalize time to 0-1 range
         progress = t / clip.duration
-        # Apply ease-in-out for smoother animation
-        eased_progress = progress * progress * (3 - 2 * progress)
+
+        # Apply SUPER smooth easing (cosine-based)
+        eased_progress = smooth_ease_in_out(progress)
 
         if zoom_in:
             # Zoom in: from 1.0 to (1.0 + zoom_ratio)
@@ -62,7 +68,8 @@ def create_zoom_effect(clip, zoom_ratio=0.2, zoom_in=True):
 
 def create_pan_effect(clip, direction='right', pan_amount=0.1):
     """
-    Create a smooth pan effect on a clip with easing.
+    Create a SUPER SMOOTH pan effect on a clip with better easing.
+    FIXED: Uses cosine-based easing to eliminate fluctuations
 
     Args:
         clip: MoviePy clip
@@ -70,14 +77,18 @@ def create_pan_effect(clip, direction='right', pan_amount=0.1):
         pan_amount: How much to pan (0.1 = 10% of dimension)
 
     Returns:
-        Clip with pan animation
+        Clip with smooth pan animation
     """
     w, h = clip.size
 
+    def smooth_ease_in_out(t):
+        """Smoother easing using cosine interpolation"""
+        return (1 - np.cos(t * np.pi)) / 2
+
     def pan(t):
         progress = t / clip.duration
-        # Apply ease-in-out for smoother animation
-        eased_progress = progress * progress * (3 - 2 * progress)
+        # Apply SUPER smooth easing (cosine-based)
+        eased_progress = smooth_ease_in_out(progress)
 
         # Calculate pan positions based on direction
         if direction == 'right':
@@ -189,16 +200,17 @@ def create_text_overlay(text: str, duration: float, position: str = 'center',
 def create_dynamic_clip(image_path: str, duration: float, index: int,
                        caption: str = None):
     """
-    Create a dynamic video clip with animations and text overlay.
+    Create a STATIC video clip (no animations).
+    Ken Burns effects have been REMOVED for completely static images.
 
     Args:
         image_path: Path to image
         duration: Clip duration
-        index: Clip index (for alternating effects)
-        caption: Optional text overlay
+        index: Clip index (unused, kept for compatibility)
+        caption: Optional text overlay (currently disabled)
 
     Returns:
-        Video clip with all effects
+        Static video clip without any motion effects
     """
     target_width = 1080
     target_height = 1920
@@ -211,12 +223,12 @@ def create_dynamic_clip(image_path: str, duration: float, index: int,
     img_aspect = img_height / img_width
     target_aspect = target_height / target_width
 
-    # Resize to fit with extra room for zoom/pan
-    # 15% extra for smooth Ken Burns animations
-    scale_factor = 1.15
+    # Resize to fit exactly (NO extra space for animations since we're static now)
+    scale_factor = 1.0  # Changed from 1.15 - no need for extra space
 
     if img_aspect < target_aspect:
-        new_height = int(target_height * scale_factor)
+        # Image is too wide, fit to height
+        new_height = target_height
         new_width = int(img_width * (new_height / img_height))
         resized = img_clip.resized(height=new_height)
         # Center crop
@@ -224,7 +236,8 @@ def create_dynamic_clip(image_path: str, duration: float, index: int,
         y1 = 0
         cropped = resized.cropped(x1=x1, y1=y1, width=target_width, height=target_height)
     else:
-        new_width = int(target_width * scale_factor)
+        # Image is too tall, fit to width
+        new_width = target_width
         new_height = int(img_height * (new_width / img_width))
         resized = img_clip.resized(width=new_width)
         # Center crop
@@ -235,73 +248,10 @@ def create_dynamic_clip(image_path: str, duration: float, index: int,
     # Set duration
     cropped = cropped.with_duration(duration)
 
-    # Apply Ken Burns effect with varied animations
-    # More diverse effects for engaging videos
-    effects = [
-        'zoom_in',           # Classic zoom in
-        'zoom_out',          # Zoom out (reveals more)
-        'pan_right_zoom',    # Pan right + zoom in
-        'pan_left_zoom',     # Pan left + zoom in
-        'pan_up_zoom',       # Pan up + zoom in
-        'pan_down_zoom',     # Pan down + zoom in
-        'diagonal_tl_zoom',  # Diagonal top-left + zoom
-        'diagonal_br_zoom',  # Diagonal bottom-right + zoom
-    ]
-    effect = effects[index % len(effects)]
+    # NO KEN BURNS EFFECTS - Image remains completely static
+    # All zoom and pan effects have been removed
 
-    # Apply the selected Ken Burns effect (optimized ratios for smooth animations)
-    if effect == 'zoom_in':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.08, zoom_in=True)
-    elif effect == 'zoom_out':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.08, zoom_in=False)
-    elif effect == 'pan_right_zoom':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='right', pan_amount=0.04)
-    elif effect == 'pan_left_zoom':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='left', pan_amount=0.04)
-    elif effect == 'pan_up_zoom':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='up', pan_amount=0.04)
-    elif effect == 'pan_down_zoom':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='down', pan_amount=0.04)
-    elif effect == 'diagonal_tl_zoom':
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='diagonal_tl', pan_amount=0.04)
-    else:  # diagonal_br_zoom
-        cropped = create_zoom_effect(cropped, zoom_ratio=0.06, zoom_in=True)
-        cropped = create_pan_effect(cropped, direction='diagonal_br', pan_amount=0.04)
-
-    # Create composite with text overlay if provided
-    # TEMPORARILY DISABLED TO FIX MEMORY ERROR - TEXT OVERLAYS CAUSE MASK ISSUES
-    # if caption:
-    #     # Split long text into multiple lines
-    #     words = caption.split()
-    #     if len(words) > 6:
-    #         mid = len(words) // 2
-    #         line1 = ' '.join(words[:mid])
-    #         line2 = ' '.join(words[mid:])
-    #         caption = f"{line1}\n{line2}"
-    #
-    #     # Create text overlay
-    #     txt_overlay = create_text_overlay(
-    #         text=caption.upper(),
-    #         duration=duration,
-    #         position='bottom',
-    #         fontsize=60,
-    #         color='white',
-    #         stroke_color='black',
-    #         stroke_width=4
-    #     )
-    #
-    #     # Composite image + text with optimized settings
-    #     composite = CompositeVideoClip([cropped, txt_overlay], size=(1080, 1920))
-    #     return composite
-    # else:
-    #     return cropped
-
-    # Return cropped video without text overlay (temporary fix for memory issues)
+    # Return static video clip
     return cropped
 
 
@@ -312,13 +262,13 @@ def create_video(
     captions: List[str] = None
 ) -> bool:
     """
-    Create a DYNAMIC 9:16 Instagram Reel with animations and text overlays.
+    Create a STATIC 9:16 Instagram Reel with completely static images (NO animations).
 
     Args:
         audio_path: Path to the audio file (MP3)
         image_folder_path: Path to folder containing images
         output_path: Path to save the final video
-        captions: Optional list of captions for each scene
+        captions: Optional list of captions for each scene (currently disabled)
 
     Returns:
         True if successful, False otherwise
@@ -326,7 +276,7 @@ def create_video(
 
     try:
         print("=" * 60)
-        print("Creating DYNAMIC Instagram Reel")
+        print("Creating STATIC Instagram Reel (NO animations)")
         print("=" * 60)
 
         # Step 1: Load audio
@@ -360,8 +310,8 @@ def create_video(
         duration_per_image = audio_duration / len(image_files)
         print(f"✓ Each scene: {duration_per_image:.2f} seconds")
 
-        # Step 4: Create dynamic clips with effects
-        print(f"\n[4/6] Creating dynamic clips with animations")
+        # Step 4: Create static clips (no animations)
+        print(f"\n[4/6] Creating static clips (NO animations)")
         video_clips = []
 
         for idx, image_path in enumerate(image_files):
@@ -370,7 +320,7 @@ def create_video(
             # Get caption for this scene if available
             caption = captions[idx] if captions and idx < len(captions) else None
 
-            # Create dynamic clip with effects
+            # Create static clip (no Ken Burns effects)
             clip = create_dynamic_clip(
                 image_path=image_path,
                 duration=duration_per_image,
@@ -380,52 +330,41 @@ def create_video(
 
             video_clips.append(clip)
 
-            # Display applied effect
-            effect_names = [
-                'Zoom In',
-                'Zoom Out',
-                'Pan Right + Zoom',
-                'Pan Left + Zoom',
-                'Pan Up + Zoom',
-                'Pan Down + Zoom',
-                'Diagonal TL + Zoom',
-                'Diagonal BR + Zoom'
-            ]
-            effect_name = effect_names[idx % len(effect_names)]
-            print(f"  [OK] Applied: {effect_name}")
+            # No effects applied - static images only
+            print(f"  [OK] Static image clip created")
 
         # Step 5: Concatenate and add audio
-        print(f"\n[5/6] Assembling {len(video_clips)} dynamic scenes")
+        print(f"\n[5/6] Assembling {len(video_clips)} static scenes")
         final_video = concatenate_videoclips(video_clips, method="chain")
         final_video = final_video.with_audio(audio_clip)
         print(f"✓ Video assembled: {final_video.duration:.2f} seconds")
 
         # Step 6: Export
-        print(f"\n[6/6] Exporting dynamic video with Ken Burns Effect to: {output_path}")
+        print(f"\n[6/6] Exporting static video (NO Ken Burns effects) to: {output_path}")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         final_video.write_videofile(
             output_path,
-            fps=24,  # Reduced from 30 to 24 FPS (still smooth, but faster rendering)
+            fps=30,  # Increased to 30 FPS for SMOOTHER animations (no fluctuations)
             codec='libx264',
             audio_codec='aac',
             temp_audiofile='data/temp/temp-audio.m4a',
             remove_temp=True,
-            preset='ultrafast',  # Changed from 'medium' to 'ultrafast' for 5-10x faster encoding
-            bitrate='5000k',  # Reduced from 8000k to 5000k (still good quality, faster encoding)
-            threads=8,  # Increased from 4 to 8 threads for better CPU utilization
+            preset='fast',  # Changed from 'ultrafast' to 'fast' for smoother rendering
+            bitrate='6000k',  # Increased to 6000k for better quality (smoother)
+            threads=8,  # Use 8 threads for better CPU utilization
             logger=None,  # Reduce memory overhead from logging
             write_logfile=False  # Disable log file writing
         )
 
         print("\n" + "=" * 60)
-        print(f"[SUCCESS] DYNAMIC VIDEO CREATED WITH KEN BURNS EFFECT!")
+        print(f"[SUCCESS] STATIC VIDEO CREATED (NO ANIMATIONS)!")
         print(f"Output: {output_path}")
         print(f"Duration: {final_video.duration:.2f} seconds")
         print(f"Resolution: 1080x1920 (9:16)")
-        print(f"FPS: 24 (cinematic, optimized)")
-        print(f"Effects: Ken Burns (8 patterns), Smooth Animations")
-        print(f"Encoding: ULTRAFAST preset for rapid generation")
+        print(f"FPS: 30")
+        print(f"Effects: NONE - Completely static images")
+        print(f"Encoding: FAST preset for high-quality output")
         print("=" * 60)
 
         # Cleanup

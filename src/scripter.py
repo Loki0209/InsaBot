@@ -88,8 +88,37 @@ Requirements:
         elif response_text.startswith("```"):
             response_text = response_text.replace("```", "").strip()
 
+        # Fix incomplete JSON (sometimes Gemini truncates)
+        # If JSON is incomplete, try to close it
+        if not response_text.endswith("}"):
+            # Find last complete field and close JSON properly
+            # Count braces to see if we need to close
+            open_braces = response_text.count("{")
+            close_braces = response_text.count("}")
+
+            if open_braces > close_braces:
+                # JSON is incomplete, try to salvage it
+                # Find the last complete array or string
+                last_quote = response_text.rfind('"')
+                if last_quote > 0:
+                    # Truncate to last complete string
+                    response_text = response_text[:last_quote + 1]
+
+                    # Close array if needed
+                    if response_text.count("[") > response_text.count("]"):
+                        response_text += "\n  ]"
+
+                    # Close object
+                    response_text += "\n}"
+
         # Parse JSON response
-        script_data = json.loads(response_text)
+        try:
+            script_data = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"[WARNING] JSON parsing failed: {e}")
+            print(f"[INFO] Response preview: {response_text[:500]}...")
+            # Retry with simpler prompt or raise error
+            raise ValueError(f"Invalid JSON response from Gemini: {e}")
 
         # Validate required fields
         required_fields = ["hook", "body", "image_prompts"]

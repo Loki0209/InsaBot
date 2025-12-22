@@ -172,6 +172,37 @@ def main():
         print(f"  Ready for Instagram Reels!")
         print("\n" + "=" * 70 + "\n")
 
+        # ========================================================================
+        # STEP 6 (OPTIONAL): Upload to Instagram
+        # ========================================================================
+        upload_enabled = os.getenv("ENABLE_AUTO_UPLOAD", "false").lower() == "true"
+
+        if upload_enabled:
+            print("STEP 6: Uploading to Instagram")
+            print("-" * 70)
+
+            try:
+                from src.uploader import upload_to_instagram
+
+                # Generate caption from script
+                caption = f"{script_data['hook']}\n\n{script_data['body']}"
+
+                # Upload to Instagram
+                upload_success = upload_to_instagram(
+                    video_path=OUTPUT_PATH,
+                    caption=caption
+                )
+
+                if upload_success:
+                    print("[OK] Successfully uploaded to Instagram!")
+                else:
+                    print("[WARNING] Failed to upload to Instagram")
+                    print("  You can manually upload the video from: " + OUTPUT_PATH)
+
+            except Exception as e:
+                print(f"[WARNING] Upload error: {e}")
+                print("  You can manually upload the video from: " + OUTPUT_PATH)
+
         return True
 
     except KeyboardInterrupt:
